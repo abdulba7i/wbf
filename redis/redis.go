@@ -3,9 +3,10 @@ package redis
 import (
 	"context"
 
-	"wbf/retry"
+	// "wbf/retry"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/wb-go/wbf/retry"
 )
 
 type Client struct {
