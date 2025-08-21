@@ -3,9 +3,10 @@ package kafka
 import (
 	"context"
 
-	"wbf/retry"
+	// "wbf/retry"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/wb-go/wbf/retry"
 )
 
 type Producer struct {
