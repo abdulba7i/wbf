@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"time"
 
-	"wbf/retry"
+	// "wbf/retry"
 
 	_ "github.com/lib/pq"
+	"github.com/wb-go/wbf/retry"
 )
 
 type DB struct {
