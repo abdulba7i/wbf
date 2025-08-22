@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/wb-go/wbf/retry"
 )
 
 type Connection = amqp091.Connection
@@ -27,9 +28,8 @@ type QueueConfig struct {
 }
 
 type Publisher struct {
-	channel    *Channel
-	exchange   string
-	routingKey string
+	channel  *Channel
+	exchange string
 }
 
 type PublishingOptions struct {
@@ -119,11 +119,10 @@ ch - канал AMQP,
 
 routingKey - "адрес" для доставки сообщений.
 */
-func NewPublisher(ch *Channel, exhange, routingKey string) *Publisher {
+func NewPublisher(ch *Channel, exchange string) *Publisher {
 	return &Publisher{
-		channel:    ch,
-		exchange:   exhange,
-		routingKey: routingKey,
+		channel:  ch,
+		exchange: exchange,
 	}
 }
 
@@ -215,7 +214,7 @@ contentType - тип контента,
 
 options - необязательные параметры публикации.
 */
-func (p *Publisher) Publish(body []byte, contentType string, options ...PublishingOptions) error {
+func (p *Publisher) Publish(body []byte, routingKey, contentType string, options ...PublishingOptions) error {
 	var option PublishingOptions
 
 	if len(options) > 0 {
@@ -233,11 +232,28 @@ func (p *Publisher) Publish(body []byte, contentType string, options ...Publishi
 
 	return p.channel.Publish(
 		p.exchange,
-		p.routingKey,
+		routingKey,
 		option.Mandatory,
 		option.Immediate,
 		pub,
 	)
+}
+
+/*
+PublishWithRetry пытается опубликовать сообщение с заданным routingKey в exchange, связанный с Publisher с ретраями в случае ошибки.
+
+body - тело сообщения,
+
+exchange - точка обмена,
+
+contentType - тип контента,
+
+options - необязательные параметры публикации.
+*/
+func (p *Publisher) PublishWithRetry(body []byte, routingKey, contentType string, strategy retry.Strategy, options ...PublishingOptions) error {
+	return retry.Do(func() error {
+		return p.Publish(body, routingKey, contentType, options...)
+	}, strategy)
 }
 
 /*
@@ -274,4 +290,15 @@ func (c *Consumer) Consume(msgChan chan []byte) error {
 	}
 
 	return nil
+}
+
+/*
+ConsumeWithRetry пытается начать потребление сообщений и отправляет их в указанный канал с ретраями в случае ошибки.
+
+msgChan - канал для получения сообщений.
+*/
+func (c *Consumer) ConsumeWithRetry(msgChan chan []byte, strategy retry.Strategy) error {
+	return retry.Do(func() error {
+		return c.Consume(msgChan)
+	}, strategy)
 }
